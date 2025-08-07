@@ -29,7 +29,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/andretorres/Documents/Carmina/mi_entorno"
+set -gx VIRTUAL_ENV "/Users/andretorres/Downloads/carmina-IA/mi_entorno"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

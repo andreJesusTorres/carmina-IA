@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/Users/andretorres/Library/Mobile Documents/com~apple~CloudDocs/Local Documents/Carmina/mi_entorno/bin/python3" "$0" "$@"
-' '''
+#!/Users/andretorres/Downloads/carmina-IA/mi_entorno/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

@@ -1,9 +1,15 @@
+# Entorno virtual
+mi_entorno/
+venv/
+env/
+.venv/
+ENV/
+
 # Large data files
 *.pkl
 *.pickle
 *.h5
 *.hdf5
-*.csv
 *.json
 
 # Python
@@ -34,12 +40,6 @@ MANIFEST
 
 # Environment
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # IDE
 .vscode/
@@ -58,4 +58,4 @@ ehthumbs.db
 Thumbs.db
 
 # Logs
-*.log 
+*.log

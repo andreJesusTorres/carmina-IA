@@ -70,10 +70,15 @@ y_train = train_data['SalePrice']
 
 # Manejo simple de valores faltantes
 print("Rellenando valores faltantes...")
-X_train = X_train.fillna(X_train.median())  # Para numéricas
-X_train = X_train.fillna('Unknown')         # Para categóricas
-test_data = test_data.fillna(test_data.median())
-test_data = test_data.fillna('Unknown')
+
+numeric_columns = X_train.select_dtypes(include=[np.number]).columns
+categorical_columns = X_train.select_dtypes(include=['object']).columns
+
+X_train[numeric_columns] = X_train[numeric_columns].fillna(X_train[numeric_columns].median())
+test_data[numeric_columns] = test_data[numeric_columns].fillna(test_data[numeric_columns].median())
+
+X_train[categorical_columns] = X_train[categorical_columns].fillna('Unknown')
+test_data[categorical_columns] = test_data[categorical_columns].fillna('Unknown')
 
 # Convertir variables categóricas a numéricas (método simple)
 print("Convirtiendo variables categóricas...")
@@ -136,9 +141,6 @@ predictions_df = pd.DataFrame({
     'Order': range(1, len(final_predictions) + 1),
     'Predicted_Price': final_predictions
 })
-
-predictions_df.to_csv('predictions.csv', index=False)
-print("✅ Predicciones guardadas en 'predictions.csv'")
 
 print("\n=== PROYECTO COMPLETADO ===")
 print(f"Se predijeron precios para {len(final_predictions)} casas")

@@ -4,10 +4,12 @@
 
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Usar backend no interactivo
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, HuberRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -43,6 +45,7 @@ missing_values = train_data.isnull().sum()
 print(missing_values[missing_values > 0])
 
 # Distribución de la variable objetivo
+print("Generando gráficos de distribución...")
 plt.figure(figsize=(10, 6))
 plt.subplot(1, 2, 1)
 plt.hist(train_data['SalePrice'], bins=30, alpha=0.7)
@@ -56,7 +59,10 @@ plt.title('Boxplot de Precios de Venta')
 plt.ylabel('Precio')
 
 plt.tight_layout()
-plt.show()
+# Guardar el gráfico en lugar de mostrarlo
+plt.savefig('distribucion_precios.png')
+plt.close()
+print("Gráfico guardado como 'distribucion_precios.png'")
 
 # =============================================================================
 # 3. PREPARACIÓN DE DATOS
@@ -122,25 +128,37 @@ rf_r2 = r2_score(y_val, rf_pred)
 rf_rmse = np.sqrt(mean_squared_error(y_val, rf_pred))
 print(f"Random Forest - R²: {rf_r2:.4f}, RMSE: {rf_rmse:.2f}")
 
+# Modelo 3: Huber Regressor
+print("Entrenando Huber Regressor...")
+huber_model = HuberRegressor(epsilon=1.35, max_iter=100, alpha=0.0001)
+huber_model.fit(X_train_split, y_train_split)
+huber_pred = huber_model.predict(X_val)
+huber_r2 = r2_score(y_val, huber_pred)
+huber_rmse = np.sqrt(mean_squared_error(y_val, huber_pred))
+print(f"Huber Regressor - R²: {huber_r2:.4f}, RMSE: {huber_rmse:.2f}")
+
 # =============================================================================
 # 5. PREDICCIONES FINALES
 # =============================================================================
 
 print("\n=== PREDICCIONES FINALES ===")
 
-# Usar el mejor modelo
-if rf_r2 > lr_r2:
-    final_predictions = rf_model.predict(test_data)
-    print("Usando Random Forest (mejor modelo)")
-else:
-    final_predictions = lr_model.predict(test_data)
-    print("Usando Regresión Lineal (mejor modelo)")
+# Usar Random Forest para las predicciones (modelo más simple y efectivo)
+print("🌲 Haciendo predicciones con Random Forest...")
+final_predictions = rf_model.predict(test_data)
 
-# Guardar predicciones
+# Crear un DataFrame con las predicciones
 predictions_df = pd.DataFrame({
-    'Order': range(1, len(final_predictions) + 1),
-    'Predicted_Price': final_predictions
+    'ID_Casa': range(1, len(final_predictions) + 1),
+    'Precio_Predicho': final_predictions
 })
 
-print("\n=== PROYECTO COMPLETADO ===")
-print(f"Se predijeron precios para {len(final_predictions)} casas")
+# Mostrar las primeras 10 predicciones
+print(f"\n📋 Primeras 10 predicciones:")
+print(predictions_df.head(10))
+
+# Mostrar estadísticas de las predicciones
+print(f"\n📊 Estadísticas de las predicciones:")
+print(f"💰 Precio mínimo predicho: ${predictions_df['Precio_Predicho'].min():,.0f}")
+print(f"💰 Precio máximo predicho: ${predictions_df['Precio_Predicho'].max():,.0f}")
+print(f"💰 Precio promedio predicho: ${predictions_df['Precio_Predicho'].mean():,.0f}")

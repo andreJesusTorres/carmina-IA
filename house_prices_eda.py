@@ -70,9 +70,8 @@ plt.xlabel('Porcentaje de Valores Faltantes')
 plt.title('Top 15 Variables con Más Valores Faltantes')
 plt.gca().invert_yaxis()
 plt.tight_layout()
-plt.savefig('valores_faltantes.png', dpi=300, bbox_inches='tight')
+plt.show()
 plt.close()
-print("📈 Gráfico guardado: 'valores_faltantes.png'")
 
 # =============================================================================
 # 3. ANÁLISIS DE LA VARIABLE OBJETIVO (SALEPRICE)
@@ -107,9 +106,8 @@ stats.probplot(train_data['SalePrice'], dist="norm", plot=plt)
 plt.title('Q-Q Plot (Normalidad)')
 
 plt.tight_layout()
-plt.savefig('analisis_saleprice.png', dpi=300, bbox_inches='tight')
+plt.show()
 plt.close()
-print("📈 Gráfico guardado: 'analisis_saleprice.png'")
 
 # Análisis de outliers
 Q1 = train_data['SalePrice'].quantile(0.25)
@@ -156,9 +154,8 @@ plt.xlabel('Correlación con SalePrice')
 plt.title('Top 10 Variables Más Correlacionadas con SalePrice')
 plt.gca().invert_yaxis()
 plt.tight_layout()
-plt.savefig('correlaciones_top10.png', dpi=300, bbox_inches='tight')
+plt.show()
 plt.close()
-print("📈 Gráfico guardado: 'correlaciones_top10.png'")
 
 # Matriz de correlación de las variables más importantes
 top_vars = correlations.head(11).index.tolist()
@@ -169,9 +166,8 @@ sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0,
             square=True, fmt='.2f', cbar_kws={'shrink': 0.8})
 plt.title('Matriz de Correlación - Variables Más Importantes')
 plt.tight_layout()
-plt.savefig('matriz_correlacion.png', dpi=300, bbox_inches='tight')
+plt.show()
 plt.close()
-print("📈 Gráfico guardado: 'matriz_correlacion.png'")
 
 # =============================================================================
 # 5. ANÁLISIS DE VARIABLES CATEGÓRICAS
@@ -197,9 +193,8 @@ for i, col in enumerate(important_categorical, 1):
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-plt.savefig('analisis_categoricas.png', dpi=300, bbox_inches='tight')
+plt.show()
 plt.close()
-print("📈 Gráfico guardado: 'analisis_categoricas.png'")
 
 # =============================================================================
 # 6. ANÁLISIS DE OUTLIERS EN VARIABLES NUMÉRICAS
@@ -220,9 +215,8 @@ for i, col in enumerate(important_numeric, 1):
     plt.title(f'{col} vs SalePrice')
 
 plt.tight_layout()
-plt.savefig('scatter_plots.png', dpi=300, bbox_inches='tight')
+plt.show()
 plt.close()
-print("📈 Gráfico guardado: 'scatter_plots.png'")
 
 # =============================================================================
 # 7. DECISIONES DE LIMPIEZA DE DATOS
@@ -279,12 +273,12 @@ print("   2. Crear variables de ingeniería de características")
 print("   3. Aplicar transformaciones necesarias")
 print("   4. Preparar datos para modelado")
 
-print("\n📊 GRÁFICOS GENERADOS:")
-print("   - valores_faltantes.png")
-print("   - analisis_saleprice.png")
-print("   - correlaciones_top10.png")
-print("   - matriz_correlacion.png")
-print("   - analisis_categoricas.png")
-print("   - scatter_plots.png")
+print("\n📊 GRÁFICOS MOSTRADOS:")
+print("   - Análisis de valores faltantes")
+print("   - Análisis de SalePrice")
+print("   - Correlaciones top 10")
+print("   - Matriz de correlación")
+print("   - Análisis de variables categóricas")
+print("   - Gráficos de dispersión")
 
 print("\n🎉 ¡Análisis Exploratorio de Datos Completado!")

@@ -105,14 +105,62 @@ plt.title('Missing Values Pattern (Top 10 Variables)')
 plt.xlabel('Variables')
 
 plt.tight_layout()
-plt.show()
+plt.savefig('missing_values_analysis.png', dpi=300, bbox_inches='tight')
 plt.close()
 
+print("📊 Missing values visualization saved as 'missing_values_analysis.png'")
+
 # =============================================================================
-# 3. TARGET VARIABLE ANALYSIS (SALEPRICE)
+# 3. DATA CLEANING - HYBRID STRATEGY
 # =============================================================================
 
-print("\n\n3. TARGET VARIABLE ANALYSIS (SALEPRICE)")
+print("\n\n3. DATA CLEANING - HYBRID STRATEGY")
+print("-" * 50)
+
+print("🔧 APPLYING HYBRID CLEANING STRATEGY:")
+print("   1. Drop columns with >50% missing values")
+print("   2. Fill numeric missing values with median")
+print("   3. Fill categorical missing values with 'Missing'")
+
+# Create a copy for cleaning
+train_data_clean = train_data.copy()
+
+# 1. Drop columns with many missing values
+columns_to_drop = ['Pool QC', 'Misc Feature', 'Alley', 'Fence']
+print(f"\n📋 Dropping columns: {columns_to_drop}")
+train_data_clean = train_data_clean.drop(columns=columns_to_drop)
+
+# 2. Fill numeric missing values with median
+numeric_columns = train_data_clean.select_dtypes(include=[np.number]).columns
+print(f"\n📊 Filling numeric columns ({len(numeric_columns)} columns):")
+for col in numeric_columns:
+    if train_data_clean[col].isnull().sum() > 0:
+        median_value = train_data_clean[col].median()
+        train_data_clean[col] = train_data_clean[col].fillna(median_value)
+        print(f"   - {col}: {train_data_clean[col].isnull().sum()} missing values → filled with median ({median_value:.2f})")
+
+# 3. Fill categorical missing values with 'Missing'
+categorical_columns = train_data_clean.select_dtypes(include=['object']).columns
+print(f"\n📊 Filling categorical columns ({len(categorical_columns)} columns):")
+for col in categorical_columns:
+    if train_data_clean[col].isnull().sum() > 0:
+        train_data_clean[col] = train_data_clean[col].fillna('Missing')
+        print(f"   - {col}: {train_data_clean[col].isnull().sum()} missing values → filled with 'Missing'")
+
+# Verify cleaning results
+print(f"\n✅ CLEANING RESULTS:")
+print(f"   - Original shape: {train_data.shape}")
+print(f"   - Cleaned shape: {train_data_clean.shape}")
+print(f"   - Remaining missing values: {train_data_clean.isnull().sum().sum()}")
+
+# Replace original data with cleaned data for rest of analysis
+train_data = train_data_clean.copy()
+
+# =============================================================================
+# 4. TARGET VARIABLE ANALYSIS (SALEPRICE)
+# =============================================================================
+
+print("\n\n4. TARGET VARIABLE ANALYSIS (SALEPRICE)")
 print("-" * 50)
 
 # Descriptive statistics
@@ -138,6 +186,41 @@ plt.boxplot(train_data['SalePrice'])
 plt.title('SalePrice Boxplot')
 plt.ylabel('Price ($)')
 
+# Q-Q plot for normality check
+plt.subplot(2, 3, 3)
+stats.probplot(train_data['SalePrice'], dist="norm", plot=plt)
+plt.title('Q-Q Plot for Normality Check')
+
+# Log transformation comparison
+plt.subplot(2, 3, 4)
+log_price = np.log1p(train_data['SalePrice'])
+plt.hist(log_price, bins=50, alpha=0.7, color='lightgreen', edgecolor='black', density=True)
+plt.title('Log-Transformed SalePrice Distribution')
+plt.xlabel('Log(Price)')
+plt.ylabel('Density')
+
+# Original vs Log comparison
+plt.subplot(2, 3, 5)
+plt.scatter(train_data['SalePrice'], log_price, alpha=0.6, color='purple')
+plt.xlabel('Original SalePrice')
+plt.ylabel('Log(SalePrice)')
+plt.title('Original vs Log-Transformed SalePrice')
+
+# Price by year sold
+plt.subplot(2, 3, 6)
+price_by_year = train_data.groupby('Yr Sold')['SalePrice'].mean()
+plt.plot(price_by_year.index, price_by_year.values, marker='o', linewidth=2, markersize=6)
+plt.title('Average Price by Year Sold')
+plt.xlabel('Year Sold')
+plt.ylabel('Average Price ($)')
+plt.xticks(rotation=45)
+
+plt.tight_layout()
+plt.savefig('target_variable_analysis.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+print("📊 Target variable analysis saved as 'target_variable_analysis.png'")
+
 # Outlier analysis
 Q1 = train_data['SalePrice'].quantile(0.25)
 Q3 = train_data['SalePrice'].quantile(0.75)
@@ -162,10 +245,10 @@ print(f"   - Skewness: {train_data['SalePrice'].skew():.3f}")
 print(f"   - Kurtosis: {train_data['SalePrice'].kurtosis():.3f}")
 
 # =============================================================================
-# 4. NUMERICAL FEATURES ANALYSIS
+# 5. NUMERICAL FEATURES ANALYSIS
 # =============================================================================
 
-print("\n\n4. NUMERICAL FEATURES ANALYSIS")
+print("\n\n5. NUMERICAL FEATURES ANALYSIS")
 print("-" * 50)
 
 # Select numerical features
@@ -228,14 +311,16 @@ plt.title('Distribution of Top 4 Features')
 plt.legend()
 
 plt.tight_layout()
-plt.show()
+plt.savefig('numerical_features_analysis.png', dpi=300, bbox_inches='tight')
 plt.close()
 
+print("📊 Numerical features analysis saved as 'numerical_features_analysis.png'")
+
 # =============================================================================
-# 5. CATEGORICAL FEATURES ANALYSIS
+# 6. CATEGORICAL FEATURES ANALYSIS
 # =============================================================================
 
-print("\n\n5. CATEGORICAL FEATURES ANALYSIS")
+print("\n\n6. CATEGORICAL FEATURES ANALYSIS")
 print("-" * 50)
 
 # Select categorical features
@@ -247,7 +332,7 @@ plt.figure(figsize=(20, 15))
 
 # Select important categorical features (based on domain knowledge and correlation potential)
 important_categorical = ['Overall Qual', 'Neighborhood', 'Kitchen Qual', 'Exter Qual', 
-                        'Garage Type', 'Foundation', 'Heating QC']
+                        'Garage Type', 'Foundation', 'Heating QC', 'MS Zoning']
 
 for i, col in enumerate(important_categorical, 1):
     if col in categorical_columns:
@@ -257,21 +342,30 @@ for i, col in enumerate(important_categorical, 1):
         
         # Plot only categories with sufficient data
         significant_categories = price_by_category[price_by_category['count'] >= 5]
-        plt.bar(range(len(significant_categories)), significant_categories['mean'])
+        bars = plt.bar(range(len(significant_categories)), significant_categories['mean'])
         plt.title(f'Average Price by {col}')
         plt.xlabel(col)
         plt.ylabel('Average Price ($)')
         plt.xticks(range(len(significant_categories)), significant_categories.index, rotation=45)
+        
+        # Color bars based on price
+        for j, bar in enumerate(bars):
+            if significant_categories.iloc[j]['mean'] > train_data['SalePrice'].mean():
+                bar.set_color('green')
+            else:
+                bar.set_color('lightblue')
 
 plt.tight_layout()
-plt.show()
+plt.savefig('categorical_features_analysis.png', dpi=300, bbox_inches='tight')
 plt.close()
 
+print("📊 Categorical features analysis saved as 'categorical_features_analysis.png'")
+
 # =============================================================================
-# 6. DATA QUALITY ISSUES AND INCONSISTENCIES
+# 7. DATA QUALITY ISSUES AND INCONSISTENCIES
 # =============================================================================
 
-print("\n\n6. DATA QUALITY ISSUES AND INCONSISTENCIES")
+print("\n\n7. DATA QUALITY ISSUES AND INCONSISTENCIES")
 print("-" * 50)
 
 # Check for duplicates
@@ -291,6 +385,7 @@ for col in train_data.columns:
 
 # Check for extreme values in numerical features
 print("\n🔍 Extreme values analysis:")
+outlier_summary = []
 for col in numeric_columns[:10]:  # Check first 10 numerical features
     Q1 = train_data[col].quantile(0.25)
     Q3 = train_data[col].quantile(0.75)
@@ -298,13 +393,41 @@ for col in numeric_columns[:10]:  # Check first 10 numerical features
     outliers_count = len(train_data[(train_data[col] < Q1 - 1.5*IQR) | 
                                    (train_data[col] > Q3 + 1.5*IQR)])
     if outliers_count > 0:
+        outlier_summary.append({
+            'Feature': col,
+            'Outliers': outliers_count,
+            'Percentage': outliers_count/len(train_data)*100
+        })
         print(f"   - {col}: {outliers_count} outliers ({outliers_count/len(train_data)*100:.1f}%)")
 
+# Visualize outliers
+if outlier_summary:
+    outlier_df = pd.DataFrame(outlier_summary)
+    plt.figure(figsize=(12, 6))
+    bars = plt.bar(range(len(outlier_df)), outlier_df['Percentage'])
+    plt.xticks(range(len(outlier_df)), outlier_df['Feature'], rotation=45)
+    plt.ylabel('Outlier Percentage (%)')
+    plt.title('Outlier Analysis for Top Numerical Features')
+    
+    # Color bars based on outlier percentage
+    for i, bar in enumerate(bars):
+        if outlier_df.iloc[i]['Percentage'] > 10:
+            bar.set_color('red')
+        elif outlier_df.iloc[i]['Percentage'] > 5:
+            bar.set_color('orange')
+        else:
+            bar.set_color('blue')
+    
+    plt.tight_layout()
+    plt.savefig('outlier_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    print("📊 Outlier analysis saved as 'outlier_analysis.png'")
+
 # =============================================================================
-# 7. FEATURE ENGINEERING INSIGHTS
+# 8. FEATURE ENGINEERING INSIGHTS
 # =============================================================================
 
-print("\n\n7. FEATURE ENGINEERING INSIGHTS")
+print("\n\n8. FEATURE ENGINEERING INSIGHTS")
 print("-" * 50)
 
 # Age-related features
@@ -333,23 +456,24 @@ if all(feature in train_data.columns for feature in quality_features):
     print("⭐ Quality score features created")
 
 # =============================================================================
-# 8. DATA CLEANING DECISIONS AND JUSTIFICATION
+# 9. DATA CLEANING DECISIONS AND JUSTIFICATION
 # =============================================================================
 
-print("\n\n8. DATA CLEANING DECISIONS AND JUSTIFICATION")
+print("\n\n9. DATA CLEANING DECISIONS AND JUSTIFICATION")
 print("-" * 50)
 
-print("🔧 CLEANING DECISIONS BASED ON EDA:")
+print("🔧 CLEANING DECISIONS APPLIED:")
 
-print("\n📋 1. MISSING VALUES HANDLING:")
-print("   - Pool QC (99.5% missing): DELETE - Too many missing values")
-print("   - Misc Feature (96.3% missing): DELETE - Too many missing values")
-print("   - Alley (93.3% missing): DELETE - Too many missing values")
-print("   - Fence (79.9% missing): DELETE - Too many missing values")
-print("   - Fireplace Qu (48.8% missing): Create 'No Fireplace' category")
-print("   - Garage variables (~5.7% missing): Fill with median values")
-print("   - Basement variables (~3% missing): Fill with median values")
-print("   - Lot Frontage (17.3% missing): Fill with median by neighborhood")
+print("\n📋 1. MISSING VALUES HANDLING (HYBRID STRATEGY):")
+print("   ✅ Pool QC (99.5% missing): DROPPED - Too many missing values")
+print("   ✅ Misc Feature (96.3% missing): DROPPED - Too many missing values")
+print("   ✅ Alley (93.3% missing): DROPPED - Too many missing values")
+print("   ✅ Fence (79.9% missing): DROPPED - Too many missing values")
+print("   ✅ Fireplace Qu (48.8% missing): FILLED with 'Missing' category")
+print("   ✅ Garage variables (~5.7% missing): FILLED with median values")
+print("   ✅ Basement variables (~3% missing): FILLED with median values")
+print("   ✅ Lot Frontage (17.3% missing): FILLED with median values")
+print("   ✅ All other missing values: FILLED appropriately")
 
 print("\n📋 2. OUTLIERS HANDLING:")
 print("   - SalePrice outliers (4.5%): KEEP - May represent luxury homes")
@@ -371,10 +495,10 @@ print("   - Standardize numerical features")
 print("   - One-hot encode categorical features")
 
 # =============================================================================
-# 9. MODELING IMPLICATIONS
+# 10. MODELING IMPLICATIONS
 # =============================================================================
 
-print("\n\n9. MODELING IMPLICATIONS")
+print("\n\n10. MODELING IMPLICATIONS")
 print("-" * 50)
 
 print("🎯 IMPACT ON MODELING:")
@@ -396,18 +520,19 @@ print("   - Consider R² for model interpretability")
 print("   - Use log-transformed metrics for skewed target")
 
 # =============================================================================
-# 10. FINAL SUMMARY
+# 11. FINAL SUMMARY
 # =============================================================================
 
-print("\n\n10. FINAL SUMMARY")
+print("\n\n11. FINAL SUMMARY")
 print("-" * 50)
 
 print("✅ EDA COMPLETED:")
 print(f"   - Dataset analyzed: {train_data.shape}")
 print(f"   - Numerical features: {len(numeric_columns)}")
 print(f"   - Categorical features: {len(categorical_columns)}")
-print(f"   - Features with missing values: {len(missing_df[missing_df['Missing_Count'] > 0])}")
+print(f"   - Features with missing values: 0 (after cleaning)")
 print(f"   - Outliers in SalePrice: {len(outliers)}")
+print(f"   - Columns dropped: 4 (Pool QC, Misc Feature, Alley, Fence)")
 
 print("\n🎯 KEY INSIGHTS:")
 print("   1. Target variable is right-skewed, log transformation recommended")
@@ -416,18 +541,23 @@ print("   3. Missing values pattern suggests systematic data collection issues")
 print("   4. Outliers may represent legitimate luxury properties")
 
 print("\n🚀 NEXT STEPS:")
-print("   1. Implement data cleaning pipeline")
+print("   1. ✅ Data cleaning pipeline COMPLETED")
 print("   2. Create feature engineering pipeline")
 print("   3. Apply appropriate transformations")
 print("   4. Build and evaluate multiple models")
 print("   5. Perform hyperparameter tuning")
 
 print("\n📊 VISUALIZATIONS GENERATED:")
-print("   - Missing values analysis")
-print("   - Target variable distribution")
-print("   - Feature correlations")
-print("   - Categorical feature analysis")
-print("   - Data quality assessment")
+print("   - missing_values_analysis.png")
+print("   - target_variable_analysis.png")
+print("   - numerical_features_analysis.png")
+print("   - categorical_features_analysis.png")
+print("   - outlier_analysis.png")
+
+# Save cleaned data
+train_data.to_csv('house_prices_cleaned_final.csv', index=False)
+print("\n💾 CLEANED DATA SAVED:")
+print("   - house_prices_cleaned_final.csv")
 
 print("\n🎉 COMPREHENSIVE EDA COMPLETED!")
 print("=" * 70)

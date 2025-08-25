@@ -51,6 +51,14 @@ categorical_features = dtype_info[dtype_info == 'object'].index.tolist()
 
 print(f"Numerical features: {len(numerical_features)}")
 print(f"Categorical features: {len(categorical_features)}")
+print(f"Sample numerical features: {numerical_features[:5]}")
+print(f"Sample categorical features: {categorical_features[:5]}")
+
+# Verify we have numerical features
+if len(numerical_features) == 0:
+    print("WARNING: No numerical features detected. Checking data types...")
+    print("All column types:", X_df.dtypes.value_counts())
+    print("First few columns:", X_df.columns[:10].tolist())
 
 # Check for missing values
 missing_values = X_df.isnull().sum()
@@ -154,8 +162,7 @@ plt.show()
 # Analyze categorical features
 print(f"\nAnalyzing distributions of {len(categorical_features)} categorical features...")
 
-# Select top categorical features for detailed analysis
-top_categorical = categorical_features[:8]  # Analyze first 8 categorical features
+top_categorical = categorical_features[:8] 
 
 fig, axes = plt.subplots(2, 4, figsize=(20, 10))
 
@@ -164,11 +171,10 @@ for i in range(2):
         idx = i * 4 + j
         if idx < len(top_categorical):
             feature = top_categorical[idx]
-            value_counts = X_df[feature].value_counts().head(10)  # Top 10 categories
+            value_counts = X_df[feature].value_counts().head(10)  
             
-            # Bar plot
             axes[i, j].bar(range(len(value_counts)), value_counts.values, color='lightcoral')
-            axes[i, j].set_title(f'{feature}\n({len(value_counts)} categories shown)')
+            axes[i, j].set_title(f'{feature}\n({len(value_counts)} categories)')
             axes[i, j].set_xlabel('Categories')
             axes[i, j].set_ylabel('Count')
             axes[i, j].tick_params(axis='x', rotation=45)
@@ -184,73 +190,119 @@ print("\n" + "=" * 60)
 print("05. Relationship analysis with target")
 print("=" * 60)
 
-# Select key features based on domain knowledge and availability
-key_features = [
-    'Gr Liv Area',      # Living area - most important for price
-    'Total Bsmt SF',    # Basement area - important for value
-    'Year Built',       # Age of house - affects value
-    'Overall Qual',     # Overall quality - critical for price
-    'Lot Area',         # Lot size - affects price
-    'Kitchen Qual',     # Kitchen quality - important for buyers
-    'Exter Qual',       # Exterior quality - first impression
-    'Garage Cars',      # Garage capacity
-    'Full Bath',        # Number of full bathrooms
-    'Fireplaces'        # Number of fireplaces
-]
+# Systematic approach: analyze all features and select top ones
+print("RELATIONSHIP ANALYSIS WITH TARGET")
 
-# Verify feature availability
-available_features = [f for f in key_features if f in X_df.columns]
-print(f"\nAnalyzing relationships with target for: {available_features}")
+# 1. Calculate correlations for all numerical features
+print("1. Calculating correlations for all numerical features...")
+numerical_correlations = {}
+for feature in numerical_features:
+    x = X_df[feature].values
+    mask = ~(np.isnan(x) | np.isnan(y))
+    if mask.sum() > 10:  # Need at least 10 valid observations
+        x_clean = x[mask]
+        y_clean = y[mask]
+        corr = np.corrcoef(x_clean, y_clean)[0, 1]
+        if not np.isnan(corr):
+            numerical_correlations[feature] = corr
 
-# Create comprehensive relationship plots
-fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+# Find top 5 numerical features by correlation
+top_numerical_features = []
+print(f"Top 5 numerical features by correlation:")
 
-for i in range(2):
-    for j in range(3):
-        idx = i * 3 + j
-        if idx < len(available_features[:6]):
-            feature = available_features[idx]
+# Simple approach: find features with highest absolute correlation
+correlations_list = []
+for feature, corr in numerical_correlations.items():
+    correlations_list.append((feature, abs(corr)))
+
+# Sort by absolute correlation (descending)
+correlations_list.sort(key=lambda x: x[1], reverse=True)
+
+# Select top 5
+for i in range(min(5, len(correlations_list))):
+    feature, abs_corr = correlations_list[i]
+    actual_corr = numerical_correlations[feature]
+    top_numerical_features.append(feature)
+    print(f"  {i+1}. {feature}: {actual_corr:.3f}")
+
+# 2. Select top categorical features (simple approach: most common ones)
+print("\n2. Selecting top categorical features...")
+categorical_counts = {}
+for feature in categorical_features:
+    non_null_count = X_df[feature].notna().sum()
+    if non_null_count > len(X_df) * 0.5:  # At least 50% non-null
+        categorical_counts[feature] = non_null_count
+
+# Find top 3 categorical features by data availability
+top_categorical_features = []
+print(f"Top 3 categorical features by data availability:")
+
+# Simple approach: find features with most data
+counts_list = []
+for feature, count in categorical_counts.items():
+    counts_list.append((feature, count))
+
+# Sort by count (descending)
+counts_list.sort(key=lambda x: x[1], reverse=True)
+
+# Select top 3
+for i in range(min(3, len(counts_list))):
+    feature, count = counts_list[i]
+    top_categorical_features.append(feature)
+    print(f"  {i+1}. {feature}: {count} non-null values")
+
+# 3. Create plots for top features (systematically selected)
+key_features = top_numerical_features + top_categorical_features
+fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+
+for i, feature in enumerate(key_features):
+    row, col = i // 4, i % 4
+    
+    if feature in numerical_features:
+        # Scatter plot for numerical features
+        x = X_df[feature].values
+        mask = ~(np.isnan(x) | np.isnan(y))
+        x_clean = x[mask]
+        y_clean = y[mask]
+        
+        if len(x_clean) > 0:
+            axes[row, col].scatter(x_clean, y_clean, alpha=0.6, s=20)
             
-            if feature in numerical_features:
-                # Numerical feature - scatter plot with trend line
-                x = X_df[feature].values
-                mask = ~(np.isnan(x) | np.isnan(y))
-                x_clean = x[mask]
-                y_clean = y[mask]
-                
-                if len(x_clean) > 0:
-                    # Scatter plot
-                    axes[i, j].scatter(x_clean, y_clean, alpha=0.6, s=20)
-                    
-                    # Add trend line
-                    z = np.polyfit(x_clean, y_clean, 1)
-                    p = np.poly1d(z)
-                    axes[i, j].plot(x_clean, p(x_clean), "r--", alpha=0.8)
-                    
-                    # Calculate correlation
-                    corr = np.corrcoef(x_clean, y_clean)[0, 1]
-                    axes[i, j].set_title(f'{feature} vs SalePrice\nCorr: {corr:.3f}')
-                    axes[i, j].set_xlabel(feature)
-                    axes[i, j].set_ylabel('SalePrice ($)')
+            # Add trend line
+            z = np.polyfit(x_clean, y_clean, 1)
+            p = np.poly1d(z)
+            axes[row, col].plot(x_clean, p(x_clean), "r--", alpha=0.8)
             
-            else:
-                # Categorical feature - box plot
-                data_to_plot = []
-                labels = []
-                for category in X_df[feature].dropna().unique()[:6]:  # Top 6 categories
-                    mask = X_df[feature] == category
-                    data_to_plot.append(y[mask])
-                    labels.append(str(category))
-                
-                if data_to_plot:
-                    bp = axes[i, j].boxplot(data_to_plot, labels=labels)
-                    axes[i, j].set_xlabel(feature)
-                    axes[i, j].set_ylabel('SalePrice ($)')
-                    axes[i, j].set_title(f'SalePrice by {feature}')
-                    axes[i, j].tick_params(axis='x', rotation=45)
+            # Calculate correlation
+            corr = np.corrcoef(x_clean, y_clean)[0, 1]
+            axes[row, col].set_title(f'{feature}\nCorr: {corr:.3f}')
+            axes[row, col].set_xlabel(feature)
+            axes[row, col].set_ylabel('SalePrice ($)')
+    
+    else:
+        # Box plot for categorical features
+        data_to_plot = []
+        labels = []
+        for category in X_df[feature].dropna().unique()[:5]:
+            mask = X_df[feature] == category
+            if mask.sum() >= 5:
+                data_to_plot.append(y[mask])
+                labels.append(str(category))
+        
+        if data_to_plot:
+            axes[row, col].boxplot(data_to_plot, labels=labels)
+            axes[row, col].set_xlabel(feature)
+            axes[row, col].set_ylabel('SalePrice')
+            axes[row, col].set_title(f'SalePrice {feature}')
+            axes[row, col].tick_params(axis='x', rotation=45)
 
 plt.tight_layout()
 plt.show()
+
+print("\nKey findings (based on systematic analysis):")
+print(f"- Top numerical features selected by correlation: {top_numerical_features}")
+print(f"- Top categorical features selected by data availability: {top_categorical_features}")
+print("- Analysis based on statistical measures, not domain knowledge")
 
 # =============================================================================
 # 6. CORRELATION ANALYSIS
@@ -260,27 +312,27 @@ print("\n" + "=" * 60)
 print("06. Correlation analysis")
 print("=" * 60)
 
-# Select numerical features for correlation analysis
-numerical_for_corr = [f for f in available_features if f in numerical_features]
-
-if len(numerical_for_corr) > 1:
-    # Create correlation dataframe with features and target
-    corr_df = X_df[numerical_for_corr].copy()
+# Correlation analysis for top numerical features (systematically selected)
+if len(top_numerical_features) > 1:
+    # Create correlation dataframe
+    corr_df = X_df[top_numerical_features].copy()
     corr_df['SalePrice'] = y
     corr_data = corr_df.corr()
-    
-    plt.figure(figsize=(10, 8))
+
+    plt.figure(figsize=(8, 6))
     mask = np.triu(np.ones_like(corr_data, dtype=bool))
     sns.heatmap(corr_data, mask=mask, annot=True, cmap='coolwarm', center=0,
-                square=True, linewidths=0.5, cbar_kws={"shrink": .8})
-    plt.title('Correlation Matrix of Key Features')
+                square=True, linewidths=0.5, cbar_kws={"shrink": .8}, fmt='.2f')
+    plt.title('Correlation Matrix of Top Numerical Features')
     plt.tight_layout()
     plt.show()
-    
+
     # Print top correlations with target
     target_correlations = corr_data['SalePrice'].sort_values(ascending=False)
     print("\nTop correlations with SalePrice:")
     print(target_correlations.head(10))
+else:
+    print("Not enough numerical features for correlation analysis")
 
 # =============================================================================
 # 7. OUTLIER DETECTION AND ANALYSIS
@@ -293,26 +345,25 @@ print("=" * 60)
 print("Outlier detection using z-scores (threshold = 3):")
 
 outlier_summary = {}
-for feature in available_features[:8]:  # Analyze top 8 features
-    if feature in numerical_features:
-        x = X_df[feature].values
-        mask = ~np.isnan(x)
-        x_clean = x[mask]
+for feature in top_numerical_features:  # Use systematically selected features
+    x = X_df[feature].values
+    mask = ~np.isnan(x)
+    x_clean = x[mask]
+    
+    if len(x_clean) > 0:
+        z_scores = np.abs((x_clean - x_clean.mean()) / x_clean.std())
+        outliers_mask = z_scores > 3
+        n_outliers = outliers_mask.sum()
+        outlier_percentage = (n_outliers/len(x_clean)*100)
         
-        if len(x_clean) > 0:
-            z_scores = np.abs((x_clean - x_clean.mean()) / x_clean.std())
-            outliers_mask = z_scores > 3
-            n_outliers = outliers_mask.sum()
-            outlier_percentage = (n_outliers/len(x_clean)*100)
-            
-            outlier_summary[feature] = {
-                'n_outliers': n_outliers,
-                'percentage': outlier_percentage,
-                'z_scores': z_scores,
-                'outlier_mask': outliers_mask
-            }
-            
-            print(f"{feature}: {n_outliers} outliers ({outlier_percentage:.1f}%)")
+        outlier_summary[feature] = {
+            'n_outliers': n_outliers,
+            'percentage': outlier_percentage,
+            'z_scores': z_scores,
+            'outlier_mask': outliers_mask
+        }
+        
+        print(f"{feature}: {n_outliers} outliers ({outlier_percentage:.1f}%)")
 
 # Visualize outliers for top features
 fig, axes = plt.subplots(2, 2, figsize=(15, 10))
@@ -363,19 +414,18 @@ for feature in numerical_features:
 
 # Check for extreme values that might be errors
 print("\nChecking for potential data entry errors:")
-for feature in available_features[:5]:
-    if feature in numerical_features:
-        values = X_df[feature].dropna()
-        q1, q3 = np.percentile(values, [25, 75])
-        iqr = q3 - q1
-        lower_bound = q1 - 1.5 * iqr
-        upper_bound = q3 + 1.5 * iqr
-        
-        extreme_low = (values < lower_bound).sum()
-        extreme_high = (values > upper_bound).sum()
-        
-        if extreme_low > 0 or extreme_high > 0:
-            print(f"{feature}: {extreme_low} extreme low, {extreme_high} extreme high values")
+for feature in top_numerical_features:  # Use systematically selected features
+    values = X_df[feature].dropna()
+    q1, q3 = np.percentile(values, [25, 75])
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    
+    extreme_low = (values < lower_bound).sum()
+    extreme_high = (values > upper_bound).sum()
+    
+    if extreme_low > 0 or extreme_high > 0:
+        print(f"{feature}: {extreme_low} extreme low, {extreme_high} extreme high values")
 
 # =============================================================================
 # 9. DATA CLEANING IMPLEMENTATION
